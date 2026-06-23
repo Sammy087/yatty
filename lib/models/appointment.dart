@@ -91,3 +91,47 @@ class AppointmentDetails {
             {},
       );
 }
+
+/// The AI design consult result, written by Cloud Functions to
+/// appointments/{id}/private/design. Read by the owning artist.
+class DesignBrief {
+  final String summary;
+  final String placement;
+  final String style;
+  final String size;
+  final String colors;
+
+  /// Storage paths (not URLs) — resolve with FirebaseStorage.ref(path).
+  final String? conceptPath;
+  final List<String> referencePaths;
+
+  const DesignBrief({
+    required this.summary,
+    required this.placement,
+    required this.style,
+    required this.size,
+    required this.colors,
+    required this.conceptPath,
+    required this.referencePaths,
+  });
+
+  bool get isEmpty =>
+      summary.isEmpty &&
+      placement.isEmpty &&
+      style.isEmpty &&
+      conceptPath == null &&
+      referencePaths.isEmpty;
+
+  factory DesignBrief.fromMap(Map<String, dynamic> map) => DesignBrief(
+        summary: map['summary'] as String? ?? '',
+        placement: map['placement'] as String? ?? '',
+        style: map['style'] as String? ?? '',
+        size: map['size'] as String? ?? '',
+        colors: map['colors'] as String? ?? '',
+        conceptPath: map['conceptPath'] as String?,
+        referencePaths: (map['referencePaths'] as List?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const [],
+      );
+}

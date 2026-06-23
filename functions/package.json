@@ -1,0 +1,14 @@
+{
+  "name": "yatty-functions",
+  "description": "OpenAI proxy + AI tattoo design consult for yatty",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.3.2",
+    "openai": "^4.104.0"
+  }
+}

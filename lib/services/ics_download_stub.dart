@@ -3,3 +3,7 @@
 void downloadIcs(String fileName, String content) {
   // No-op on non-web platforms.
 }
+
+void openExternalUrl(String url) {
+  // No-op on non-web platforms.
+}

@@ -35,9 +35,37 @@ class IcsService {
     return buf.toString();
   }
 
-  /// Triggers a browser download of the given .ics content.
+  /// Triggers a browser download of the given .ics content (or, on iOS, the
+  /// native "Add to Calendar" sheet).
   static void download(String fileName, String icsContent) =>
       downloadIcs(fileName, icsContent);
+
+  /// A Google Calendar "add event" link, prefilled — one tap to save for anyone
+  /// using Google Calendar.
+  static String googleCalendarUrl({
+    required String title,
+    required DateTime start,
+    required DateTime end,
+    String description = '',
+    String location = '',
+  }) {
+    final dates = '${_utc(start.toUtc())}/${_utc(end.toUtc())}';
+    final params = {
+      'action': 'TEMPLATE',
+      'text': title,
+      'dates': dates,
+      'details': description,
+      'location': location,
+    };
+    final query = params.entries
+        .map((e) =>
+            '${e.key}=${Uri.encodeQueryComponent(e.value)}')
+        .join('&');
+    return 'https://calendar.google.com/calendar/render?$query';
+  }
+
+  /// Opens [url] in a new tab (web only).
+  static void openUrl(String url) => openExternalUrl(url);
 
   static String _utc(DateTime d) {
     String two(int n) => n.toString().padLeft(2, '0');

@@ -13,6 +13,7 @@ class BookingSuccessScreen extends StatelessWidget {
     required this.start,
     required this.end,
     required this.icsBuilder,
+    required this.googleCalendarUrl,
   });
 
   final String artistName;
@@ -20,6 +21,7 @@ class BookingSuccessScreen extends StatelessWidget {
   final DateTime start;
   final DateTime end;
   final String Function() icsBuilder;
+  final String googleCalendarUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -61,10 +63,16 @@ class BookingSuccessScreen extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: () =>
                       IcsService.download('appointment.ics', icsBuilder()),
-                  icon: const Icon(Icons.event),
-                  label: const Text('Add to my calendar'),
+                  icon: const Icon(Icons.event_available),
+                  label: const Text('Add to my device calendar'),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () => IcsService.openUrl(googleCalendarUrl),
+                  icon: const Icon(Icons.calendar_month),
+                  label: const Text('Add to Google Calendar'),
+                ),
+                const SizedBox(height: 16),
                 Text(
                   'The artist has also received your booking and it is on their '
                   'calendar.',

@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// Reference photos and AI concept images live under appointments/{id}/...
+// They are written ONLY by Cloud Functions (Admin SDK), never by clients, and
+// read only by signed-in artists. Paths include a random token so they can't be
+// guessed from the appointment id alone.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /appointments/{appointmentId}/{file=**} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /{allOther=**} {
+      allow read, write: if false;
+    }
+  }
+}

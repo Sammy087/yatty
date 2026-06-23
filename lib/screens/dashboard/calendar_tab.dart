@@ -1,3 +1,4 @@
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -172,6 +173,7 @@ class _AppointmentCard extends StatelessWidget {
               for (final e in d.responses.entries)
                 if (!e.key.startsWith('__label__'))
                   _row(d.responses['__label__${e.key}'] ?? e.key, e.value),
+              _DesignSection(appointmentId: appt.id),
             ],
           ),
         ),
@@ -213,4 +215,120 @@ class _AppointmentCard extends StatelessWidget {
         AppointmentStatus.confirmed => Colors.greenAccent,
         AppointmentStatus.cancelled => Colors.redAccent,
       };
+}
+
+/// The AI design consult (summary + concept + references) for the artist.
+class _DesignSection extends StatelessWidget {
+  const _DesignSection({required this.appointmentId});
+  final String appointmentId;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DesignBrief?>(
+      future: db.appointmentDesign(appointmentId),
+      builder: (context, snap) {
+        final d = snap.data;
+        if (d == null || d.isEmpty) return const SizedBox.shrink();
+        final chips = <String>[
+          if (d.style.isNotEmpty) d.style,
+          if (d.size.isNotEmpty) d.size,
+          if (d.colors.isNotEmpty) d.colors,
+        ];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(height: 24),
+            Row(
+              children: [
+                Icon(Icons.auto_awesome,
+                    size: 16, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 6),
+                const Text('AI design consult',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (d.summary.isNotEmpty) Text(d.summary),
+            if (d.placement.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text('Placement: ${d.placement}',
+                    style: const TextStyle(color: Colors.grey)),
+              ),
+            if (chips.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [for (final c in chips) Chip(label: Text(c))],
+                ),
+              ),
+            if (d.conceptPath != null) ...[
+              const SizedBox(height: 12),
+              const Text('Concept', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 4),
+              _StorageImage(path: d.conceptPath!, height: 220),
+            ],
+            if (d.referencePaths.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text('References',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final p in d.referencePaths)
+                    _StorageImage(path: p, height: 90, width: 90),
+                ],
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Resolves a Storage path to a download URL and shows the image.
+class _StorageImage extends StatelessWidget {
+  const _StorageImage({required this.path, this.height, this.width});
+  final String path;
+  final double? height;
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String>(
+      future: FirebaseStorage.instance.ref(path).getDownloadURL(),
+      builder: (context, snap) {
+        if (!snap.hasData) {
+          return Container(
+            height: height ?? 120,
+            width: width,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1B1B22),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const SizedBox(
+              height: 18,
+              width: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        }
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.network(
+            snap.data!,
+            height: height,
+            width: width,
+            fit: BoxFit.cover,
+          ),
+        );
+      },
+    );
+  }
 }

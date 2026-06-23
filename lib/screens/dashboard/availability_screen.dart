@@ -135,26 +135,16 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   }
 
   Widget _dayRow(int weekday, DayHours day) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 110,
-              child: Text(_weekdayNames[weekday]!,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-            ),
-            Switch(
-              value: day.enabled,
-              onChanged: (v) => setState(() {
-                final days = Map<int, DayHours>.from(_availability!.days);
-                days[weekday] = day.copyWith(enabled: v);
-                _availability = _availability!.copyWith(days: days);
-              }),
-            ),
-            const Spacer(),
-            if (day.enabled) ...[
+    void toggle(bool v) => setState(() {
+          final days = Map<int, DayHours>.from(_availability!.days);
+          days[weekday] = day.copyWith(enabled: v);
+          _availability = _availability!.copyWith(days: days);
+        });
+
+    final times = day.enabled
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               TextButton(
                 onPressed: () => _pickTime(weekday, true),
                 child: Text(_fmt(day.startMinutes)),
@@ -164,10 +154,49 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                 onPressed: () => _pickTime(weekday, false),
                 child: Text(_fmt(day.endMinutes)),
               ),
-            ] else
-              Text('Closed',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.4))),
-          ],
+            ],
+          )
+        : Text('Closed',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.4)));
+
+    final nameAndSwitch = Row(
+      children: [
+        Expanded(
+          child: Text(_weekdayNames[weekday]!,
+              style: const TextStyle(fontWeight: FontWeight.w600)),
+        ),
+        Switch(value: day.enabled, onChanged: toggle),
+      ],
+    );
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: LayoutBuilder(
+          builder: (context, c) {
+            // Stack the time controls under the day name on narrow screens.
+            if (c.maxWidth < 360) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  nameAndSwitch,
+                  Align(alignment: Alignment.centerRight, child: times),
+                ],
+              );
+            }
+            return Row(
+              children: [
+                SizedBox(
+                  width: 96,
+                  child: Text(_weekdayNames[weekday]!,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                ),
+                Switch(value: day.enabled, onChanged: toggle),
+                const Spacer(),
+                Flexible(child: times),
+              ],
+            );
+          },
         ),
       ),
     );

@@ -9,6 +9,7 @@ import '../../services/firestore_service.dart';
 import '../../services/ics_service.dart';
 import '../../services/services.dart';
 import 'booking_success_screen.dart';
+import 'design_chat_screen.dart';
 
 /// The public, no-login page a client opens from the shared link: /book/{formId}.
 class BookingScreen extends StatefulWidget {
@@ -137,7 +138,7 @@ class _BookingScreenState extends State<BookingScreen> {
       for (final f in form.fields) '__label__${f.id}': f.label,
     };
     try {
-      await db.bookAppointment(
+      final apptId = await db.bookAppointment(
         artistId: form.artistId,
         formId: form.id,
         start: slot.start,
@@ -150,19 +151,31 @@ class _BookingScreenState extends State<BookingScreen> {
         ),
       );
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(MaterialPageRoute(
-        builder: (_) => BookingSuccessScreen(
-          artistName: _artistName,
-          title: form.title,
+      final success = BookingSuccessScreen(
+        artistName: _artistName,
+        title: form.title,
+        start: slot.start,
+        end: slot.end,
+        icsBuilder: () => IcsService.build(
+          uid: '${form.artistId}_${slot.start.millisecondsSinceEpoch}',
+          title: '$_artistName — ${form.title}',
           start: slot.start,
           end: slot.end,
-          icsBuilder: () => IcsService.build(
-            uid: '${form.artistId}_${slot.start.millisecondsSinceEpoch}',
-            title: '$_artistName — ${form.title}',
-            start: slot.start,
-            end: slot.end,
-            description: form.description,
-          ),
+          description: form.description,
+        ),
+        googleCalendarUrl: IcsService.googleCalendarUrl(
+          title: '$_artistName — ${form.title}',
+          start: slot.start,
+          end: slot.end,
+          description: form.description,
+        ),
+      );
+      // Booked! Now run the AI design consult, which hands off to the
+      // confirmation screen when the client is done.
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+        builder: (_) => DesignChatScreen(
+          appointmentId: apptId,
+          successScreen: success,
         ),
       ));
     } on SlotTakenException {

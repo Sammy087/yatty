@@ -32,45 +32,59 @@ class OverviewTab extends StatelessWidget {
       stream: db.formsStream(uid),
       builder: (context, formsSnap) {
         final forms = formsSnap.data ?? const <BookingForm>[];
+        final pad = MediaQuery.sizeOf(context).width < 480 ? 16.0 : 24.0;
         return ListView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(pad),
           children: [
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                _StatCard(
-                  label: 'Live forms',
-                  value: '${forms.length}',
-                  icon: Icons.description,
-                ),
-                _StatCard(
-                  label: 'Upcoming',
-                  value: '${upcoming.length}',
-                  icon: Icons.event_available,
-                ),
-                _StatCard(
-                  label: 'Needs review',
-                  value: '$pending',
-                  icon: Icons.mark_email_unread,
-                  highlight: pending > 0,
-                ),
-                _StatCard(
-                  label: 'Total booked',
-                  value: '${appointments.where((a) => a.isActive).length}',
-                  icon: Icons.how_to_reg,
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, c) {
+                const gap = 12.0;
+                // 2 cards per row on phones, 4 on wider screens.
+                final perRow = c.maxWidth < 520 ? 2 : 4;
+                final cardW = (c.maxWidth - gap * (perRow - 1)) / perRow;
+                return Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    _StatCard(
+                      width: cardW,
+                      label: 'Live forms',
+                      value: '${forms.length}',
+                      icon: Icons.description,
+                    ),
+                    _StatCard(
+                      width: cardW,
+                      label: 'Upcoming',
+                      value: '${upcoming.length}',
+                      icon: Icons.event_available,
+                    ),
+                    _StatCard(
+                      width: cardW,
+                      label: 'Needs review',
+                      value: '$pending',
+                      icon: Icons.mark_email_unread,
+                      highlight: pending > 0,
+                    ),
+                    _StatCard(
+                      width: cardW,
+                      label: 'Total booked',
+                      value: '${appointments.where((a) => a.isActive).length}',
+                      icon: Icons.how_to_reg,
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 28),
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
               children: [
                 FilledButton.icon(
                   onPressed: () => context.push('/form/new'),
                   icon: const Icon(Icons.add),
                   label: const Text('New booking form'),
                 ),
-                const SizedBox(width: 12),
                 OutlinedButton.icon(
                   onPressed: () => context.push('/availability'),
                   icon: const Icon(Icons.schedule),
@@ -134,20 +148,22 @@ class _StatCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
+    required this.width,
     this.highlight = false,
   });
 
   final String label;
   final String value;
   final IconData icon;
+  final double width;
   final bool highlight;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      width: 180,
-      padding: const EdgeInsets.all(20),
+      width: width,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF14141A),
         borderRadius: BorderRadius.circular(16),

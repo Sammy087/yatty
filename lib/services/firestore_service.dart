@@ -133,6 +133,13 @@ class FirestoreService {
     return AppointmentDetails.fromMap(d.data());
   }
 
+  /// The AI design consult for an appointment, if the client did one.
+  Future<DesignBrief?> appointmentDesign(String apptId) async {
+    final d = await _appts.doc(apptId).collection('private').doc('design').get();
+    if (!d.exists) return null;
+    return DesignBrief.fromMap(d.data()!);
+  }
+
   /// Books a slot atomically. Uses a deterministic id (artist + start) so two
   /// people grabbing the same slot collide and the loser fails. Re-checks for
   /// overlap inside the transaction as a second guard. Returns the new id.
