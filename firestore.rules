@@ -1,0 +1,71 @@
+rules_version = '2';
+
+// Security model for yatty.
+//
+// Only artists authenticate. Customers book without an account, so some writes
+// must be open to unauthenticated users — but kept safe by (a) keeping all
+// customer PII in a separate `private` subcollection the public can never read,
+// and (b) validating the shape of public writes.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    function artistOf(apptId) {
+      return get(/databases/$(database)/documents/appointments/$(apptId)).data.artistId;
+    }
+
+    // Private artist profile (email etc.) — owner only.
+    match /artists/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // Public profile: display name + availability. Anyone can read (the booking
+    // page needs it); only the owner can write.
+    match /publicProfiles/{uid} {
+      allow read: if true;
+      allow write: if isOwner(uid);
+    }
+
+    // Booking forms: public read so clients can open the share link; owner writes.
+    match /forms/{formId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.artistId == request.auth.uid;
+      allow update, delete: if isSignedIn()
+        && resource.data.artistId == request.auth.uid;
+    }
+
+    // Appointments: this document holds NO customer PII (just artistId, formId,
+    // start, end, status), so public read is safe and lets the booking page
+    // compute which slots are taken.
+    match /appointments/{apptId} {
+      allow read: if true;
+
+      // Anyone can create a booking, but it must be well-formed, start as
+      // 'pending', and reference a real artist. Modifying or deleting an
+      // existing booking is restricted to the owning artist.
+      allow create: if request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasAll(
+             ['artistId', 'formId', 'start', 'end', 'status'])
+        && request.resource.data.start is timestamp
+        && request.resource.data.end is timestamp
+        && exists(/databases/$(database)/documents/publicProfiles/$(request.resource.data.artistId));
+      allow update, delete: if isSignedIn()
+        && resource.data.artistId == request.auth.uid;
+
+      // Customer PII (name, email, phone, answers). Created together with the
+      // appointment by the public client, but readable only by the artist.
+      match /private/{docId} {
+        allow read: if isSignedIn() && artistOf(apptId) == request.auth.uid;
+        allow create: if true;
+        allow update, delete: if isSignedIn()
+          && artistOf(apptId) == request.auth.uid;
+      }
+    }
+  }
+}
