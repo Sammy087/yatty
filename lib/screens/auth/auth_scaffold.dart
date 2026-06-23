@@ -19,6 +19,8 @@ class AuthScaffold extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Image.asset('assets/logo.png', width: 76, height: 76),
+                const SizedBox(height: 12),
                 Text(
                   'yatty',
                   textAlign: TextAlign.center,

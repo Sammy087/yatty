@@ -220,7 +220,11 @@ class _BookingScreenState extends State<BookingScreen> {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
+              Center(
+                child: Image.asset('assets/logo.png', width: 48, height: 48),
+              ),
+              const SizedBox(height: 20),
               Text(_artistName,
                   style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
