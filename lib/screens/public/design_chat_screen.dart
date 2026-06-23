@@ -15,13 +15,15 @@ class DesignChatScreen extends StatefulWidget {
   const DesignChatScreen({
     super.key,
     required this.appointmentId,
-    required this.successScreen,
+    required this.buildSuccess,
   });
 
   final String appointmentId;
 
-  /// Where to go when the client is done (the booking confirmation).
-  final BookingSuccessScreen successScreen;
+  /// Builds the booking confirmation, injecting the conversation so the success
+  /// screen can offer to generate a concept image from it.
+  final BookingSuccessScreen Function(
+      List<ChatTurn> messages, List<String> referenceImages) buildSuccess;
 
   @override
   State<DesignChatScreen> createState() => _DesignChatScreenState();
@@ -31,8 +33,7 @@ class _UiMessage {
   final String role; // user | assistant
   final String text;
   final List<Uint8List> images;
-  final Uint8List? concept; // a generated concept image attached to this turn
-  _UiMessage(this.role, this.text, {this.images = const [], this.concept});
+  _UiMessage(this.role, this.text, {this.images = const []});
 }
 
 class _DesignChatScreenState extends State<DesignChatScreen> {
@@ -47,8 +48,6 @@ class _DesignChatScreenState extends State<DesignChatScreen> {
   final List<String> _allReferenceImages = []; // every ref shared, for generation
 
   bool _sending = false;
-  bool _generating = false;
-  bool _done = false;
 
   @override
   void initState() {
@@ -137,40 +136,11 @@ class _DesignChatScreenState extends State<DesignChatScreen> {
     }
   }
 
-  Future<void> _generate() async {
-    if (_generating) return;
-    setState(() => _generating = true);
-    _scrollToEnd();
-    try {
-      final result = await ai.generateConcept(
-        appointmentId: widget.appointmentId,
-        messages: _wire,
-        referenceImages: _allReferenceImages,
-      );
-      final bytes = base64Decode(result.imageBase64);
-      setState(() {
-        _ui.add(_UiMessage(
-          'assistant',
-          result.summary.isEmpty
-              ? "Here's a concept based on what you described:"
-              : "Here's a concept based on what you described:\n\n${result.summary}",
-          concept: bytes,
-        ));
-        _done = true;
-      });
-    } catch (e) {
-      setState(() => _ui.add(_UiMessage('assistant',
-          "I couldn't generate a concept just now, but your notes are saved for "
-          "your artist. You can finish booking.")));
-    } finally {
-      if (mounted) setState(() => _generating = false);
-      _scrollToEnd();
-    }
-  }
-
   void _finish() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => widget.successScreen),
+      MaterialPageRoute(
+        builder: (_) => widget.buildSuccess(_wire, _allReferenceImages),
+      ),
     );
   }
 
@@ -195,7 +165,7 @@ class _DesignChatScreenState extends State<DesignChatScreen> {
                 child: ListView.builder(
                   controller: _scroll,
                   padding: const EdgeInsets.all(16),
-                  itemCount: _ui.length + ((_sending || _generating) ? 1 : 0),
+                  itemCount: _ui.length + (_sending ? 1 : 0),
                   itemBuilder: (context, i) {
                     if (i >= _ui.length) return const _TypingBubble();
                     return _Bubble(_ui[i]);
@@ -280,28 +250,12 @@ class _DesignChatScreenState extends State<DesignChatScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.tonalIcon(
-                  onPressed: (_generating || _wire.isEmpty) ? null : _generate,
-                  icon: _generating
-                      ? const SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.auto_awesome),
-                  label: Text(_generating
-                      ? 'Generating concept…'
-                      : 'Generate concept image'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: _finish,
-                child: Text(_done ? 'Finish' : 'Done'),
-              ),
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _finish,
+              child: const Text('Finish'),
+            ),
           ),
         ],
       ),
@@ -354,14 +308,6 @@ class _Bubble extends StatelessWidget {
                   style: TextStyle(
                     color: isUser ? Colors.black : Colors.white,
                   ),
-                ),
-              ),
-            if (msg.concept != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.memory(msg.concept!, fit: BoxFit.cover),
                 ),
               ),
           ],

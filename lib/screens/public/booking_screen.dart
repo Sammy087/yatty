@@ -151,31 +151,33 @@ class _BookingScreenState extends State<BookingScreen> {
         ),
       );
       if (!mounted) return;
-      final success = BookingSuccessScreen(
-        artistName: _artistName,
-        title: form.title,
-        start: slot.start,
-        end: slot.end,
-        icsBuilder: () => IcsService.build(
-          uid: '${form.artistId}_${slot.start.millisecondsSinceEpoch}',
-          title: '$_artistName — ${form.title}',
-          start: slot.start,
-          end: slot.end,
-          description: form.description,
-        ),
-        googleCalendarUrl: IcsService.googleCalendarUrl(
-          title: '$_artistName — ${form.title}',
-          start: slot.start,
-          end: slot.end,
-          description: form.description,
-        ),
-      );
-      // Booked! Now run the AI design consult, which hands off to the
-      // confirmation screen when the client is done.
+      // Booked! Run the AI design consult, then hand off to the confirmation
+      // screen (which can generate a concept image from the conversation).
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (_) => DesignChatScreen(
           appointmentId: apptId,
-          successScreen: success,
+          buildSuccess: (messages, refs) => BookingSuccessScreen(
+            artistName: _artistName,
+            title: form.title,
+            start: slot.start,
+            end: slot.end,
+            icsBuilder: () => IcsService.build(
+              uid: '${form.artistId}_${slot.start.millisecondsSinceEpoch}',
+              title: '$_artistName — ${form.title}',
+              start: slot.start,
+              end: slot.end,
+              description: form.description,
+            ),
+            googleCalendarUrl: IcsService.googleCalendarUrl(
+              title: '$_artistName — ${form.title}',
+              start: slot.start,
+              end: slot.end,
+              description: form.description,
+            ),
+            appointmentId: apptId,
+            chatMessages: messages,
+            referenceImages: refs,
+          ),
         ),
       ));
     } on SlotTakenException {
