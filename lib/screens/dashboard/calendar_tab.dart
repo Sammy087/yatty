@@ -264,6 +264,51 @@ class _DesignSection extends StatelessWidget {
                   children: [for (final c in chips) Chip(label: Text(c))],
                 ),
               ),
+            if (d.transcript.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text('Conversation',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B1B22),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final line in d.transcript)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: RichText(
+                          text: TextSpan(
+                            style: DefaultTextStyle.of(context).style,
+                            children: [
+                              TextSpan(
+                                text: line.role == 'assistant'
+                                    ? 'AI:  '
+                                    : 'Client:  ',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: line.role == 'assistant'
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Colors.white,
+                                ),
+                              ),
+                              TextSpan(
+                                text: line.text +
+                                    (line.hasImages ? '  📎 photo' : ''),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
             if (d.conceptPath != null) ...[
               const SizedBox(height: 12),
               const Text('Concept', style: TextStyle(fontSize: 12, color: Colors.grey)),

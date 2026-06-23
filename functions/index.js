@@ -84,7 +84,7 @@ exports.aiChat = onCall(
   async (req) => {
     const db = getFirestore();
     const { appointmentId } = req.data || {};
-    await loadAppointment(db, appointmentId);
+    const appt = await loadAppointment(db, appointmentId);
     await bumpUsage(db, appointmentId, "chatTurns", MAX_CHAT_TURNS);
     const messages = sanitizeMessages((req.data || {}).messages);
 
@@ -109,7 +109,27 @@ exports.aiChat = onCall(
       messages: oa,
       max_tokens: 400,
     });
-    return { reply: resp.choices?.[0]?.message?.content || "" };
+    const reply = resp.choices?.[0]?.message?.content || "";
+
+    // Persist the running transcript (text only — no image data) so the artist
+    // sees the conversation even if the client never generates a concept.
+    const transcript = [
+      ...messages.map((m) => ({
+        role: m.role,
+        text: m.text,
+        hasImages: (m.images || []).length > 0,
+      })),
+      { role: "assistant", text: reply, hasImages: false },
+    ];
+    await designRef(db, appointmentId).set(
+      {
+        transcript,
+        artistId: appt.get("artistId"),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return { reply };
   }
 );
 

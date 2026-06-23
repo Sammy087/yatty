@@ -105,6 +105,11 @@ class DesignBrief {
   final String? conceptPath;
   final List<String> referencePaths;
 
+  /// The AI conversation, oldest first. Each line is (role: user|assistant,
+  /// text, hasImages). Saved on every chat turn, so it's here even when the
+  /// client didn't generate a concept image.
+  final List<({String role, String text, bool hasImages})> transcript;
+
   const DesignBrief({
     required this.summary,
     required this.placement,
@@ -113,6 +118,7 @@ class DesignBrief {
     required this.colors,
     required this.conceptPath,
     required this.referencePaths,
+    required this.transcript,
   });
 
   bool get isEmpty =>
@@ -120,7 +126,8 @@ class DesignBrief {
       placement.isEmpty &&
       style.isEmpty &&
       conceptPath == null &&
-      referencePaths.isEmpty;
+      referencePaths.isEmpty &&
+      transcript.isEmpty;
 
   factory DesignBrief.fromMap(Map<String, dynamic> map) => DesignBrief(
         summary: map['summary'] as String? ?? '',
@@ -131,6 +138,18 @@ class DesignBrief {
         conceptPath: map['conceptPath'] as String?,
         referencePaths: (map['referencePaths'] as List?)
                 ?.map((e) => e.toString())
+                .toList() ??
+            const [],
+        transcript: (map['transcript'] as List?)
+                ?.map((e) {
+                  final m = (e as Map).cast<String, dynamic>();
+                  return (
+                    role: m['role'] as String? ?? 'user',
+                    text: m['text'] as String? ?? '',
+                    hasImages: m['hasImages'] as bool? ?? false,
+                  );
+                })
+                .where((l) => l.text.isNotEmpty || l.hasImages)
                 .toList() ??
             const [],
       );
