@@ -73,7 +73,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
               if (wide) const VerticalDivider(width: 1),
-              Expanded(child: pages[_index]),
+              // IndexedStack keeps all three tabs mounted, so switching between
+              // them is instant instead of rebuilding + refetching each time.
+              Expanded(child: IndexedStack(index: _index, children: pages)),
             ],
           ),
           bottomNavigationBar: wide

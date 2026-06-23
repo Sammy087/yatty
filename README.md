@@ -7,7 +7,9 @@ double-booking the artist. Bookings land on the artist's in-app calendar, and
 both sides can add the appointment to their device calendar via `.ics`.
 
 Built with **Flutter** (web first, iOS-ready) and **Firebase** (Auth +
-Firestore + Hosting). No Cloud Functions, so it runs on the free Spark plan.
+Firestore + Hosting + Functions + Storage). After booking, an optional AI
+design consult (GPT‑4o + gpt-image-1, proxied through Cloud Functions) helps the
+client describe their tattoo and generates a concept image for the artist.
 
 ## How it works
 
@@ -45,12 +47,39 @@ flutter test                 # scheduling logic tests
 flutter analyze lib test
 ```
 
+## AI design consult
+
+After a client books, `DesignChatScreen` opens a chat backed by two callable
+Cloud Functions in `functions/` (the **OpenAI key lives only here**, in Secret
+Manager — never in the app):
+
+- `aiChat` — GPT‑4o (vision) asks about idea/style/size/placement and reacts to
+  uploaded reference photos.
+- `aiGenerateConcept` — summarises the chat into an artist brief and generates a
+  concept image with `gpt-image-1`. Brief + images are written (Admin SDK) to
+  `appointments/{id}/private/design` and Firebase Storage; the artist sees them
+  in the appointment details.
+
+Guards: each call must reference a real appointment created in the last 6h, and
+per-appointment usage is capped. For production, also enable **Firebase App
+Check** to stop scripted abuse of the public endpoints.
+
 ## Deploy
 
 ```bash
 flutter build web
-firebase deploy --only hosting,firestore:rules,firestore:indexes
+firebase deploy --only hosting,firestore:rules,firestore:indexes,storage,functions
 ```
+
+### Ops notes
+- **OpenAI key**: stored as the `OPENAI_KEY` secret —
+  `firebase functions:secrets:set OPENAI_KEY` (then redeploy functions). Rotate
+  by setting a new version.
+- **Public function access**: the booking page calls the functions
+  unauthenticated, so each 2nd‑gen function's Cloud Run service needs
+  `roles/run.invoker` for `allUsers`. Re-grant after creating *new* functions:
+  `gcloud run services add-iam-policy-binding <svc> --region us-central1 --member=allUsers --role=roles/run.invoker`.
+- Requires the **Blaze** (pay-as-you-go) plan for Functions/Storage.
 
 Live site: https://yatty-cf0d5.web.app
 

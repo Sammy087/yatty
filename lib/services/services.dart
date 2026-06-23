@@ -12,7 +12,14 @@ late final AuthService auth;
 late final AiService ai;
 
 void initServices() {
-  db = FirestoreService(FirebaseFirestore.instance);
+  final firestore = FirebaseFirestore.instance;
+  // On-device cache: reads are served instantly from cache and synced in the
+  // background, so hopping between screens doesn't wait on the network.
+  firestore.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
+  db = FirestoreService(firestore);
   auth = AuthService(FirebaseAuth.instance, db);
   ai = AiService(FirebaseFunctions.instanceFor(region: 'us-central1'));
 }
